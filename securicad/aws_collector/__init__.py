@@ -213,13 +213,13 @@ def init_logging(quiet: bool, verbose: bool) -> None:
 
 
 def get_config_data(
-    profile: Optional[str],
-    access_key: Optional[str],
-    secret_key: Optional[str],
-    session_token: Optional[str],
-    role: Optional[str],
-    region: Optional[str],
-    config: Optional[Path],
+    profile: Optional[str] = None,
+    access_key: Optional[str] = None,
+    secret_key: Optional[str] = None,
+    session_token: Optional[str] = None,
+    role: Optional[str] = None,
+    region: Optional[str] = None,
+    config: Optional[Path] = None,
 ) -> Dict[str, Any]:
     def create_config(
         _access_key: Optional[str],
