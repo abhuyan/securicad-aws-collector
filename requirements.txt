@@ -4,11 +4,11 @@
 #
 #    ./tools/scripts/create_requirements.sh
 #
-attrs==20.3.0
+attrs==21.2.0
     # via jsonschema
-boto3==1.17.50
+boto3==1.17.73
     # via -r requirements.in
-botocore==1.20.50
+botocore==1.20.73
     # via
     #   -r requirements.in
     #   boto3
@@ -25,9 +25,9 @@ pyrsistent==0.17.3
     # via jsonschema
 python-dateutil==2.8.1
     # via botocore
-s3transfer==0.3.6
+s3transfer==0.4.2
     # via boto3
-six==1.15.0
+six==1.16.0
     # via
     #   jsonschema
     #   python-dateutil
