@@ -61,6 +61,7 @@ def collect(
     regions: List[str],
     account_data: Dict[str, Any],
     include_inspector: bool,
+    include_guardduty: bool,
     threads: Optional[int],
 ) -> None:
     session = Session(**credentials)
@@ -77,7 +78,7 @@ def collect(
             continue
         log.info(f'Collecting AWS environment information of region "{region}"')
         region_data = {"region_name": region}
-        region_collector.collect(credentials, region_data, include_inspector, threads)
+        region_collector.collect(credentials, region_data, include_inspector, include_guardduty, threads)
         account_data["regions"].append(region_data)
         region_names.add(region)
     if not account_data["regions"]:

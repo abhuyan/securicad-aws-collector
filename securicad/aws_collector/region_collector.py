@@ -31,15 +31,16 @@ def collect(
     credentials: Dict[str, str],
     region_data: Dict[str, Any],
     include_inspector: bool,
+    include_guardduty: bool,
     threads: Optional[int],
 ) -> None:
     session = Session(**credentials, region_name=region_data["region_name"])
 
-    region_data.update(get_region_data(session, include_inspector, threads))
+    region_data.update(get_region_data(session, include_inspector, include_guardduty, threads))
 
 
 def get_region_data(
-    session: Session, include_inspector: bool, threads: Optional[int]
+    session: Session, include_inspector: bool, include_guardduty: bool, threads: Optional[int]
 ) -> Dict[str, Any]:
     client_lock: Lock = Lock()
     client_cache: Dict[str, BaseClient] = {}
@@ -882,6 +883,33 @@ def get_region_data(
         return ["apigatewayv2", "Apis"], apis
 
     add_task(apigatewayv2_get_apis, "apigatewayv2")
+
+    def guardduty_get_findings() -> Tuple[List[str], Any]:
+        log.debug("Executing guardduty list-detectors, list-findings, get-findings")
+
+        detectors = paginate("guardduty", "list_detectors", key="DetectorIds")
+        findings = []
+        for detector_id in detectors:
+            finding_ids = paginate(
+                "guardduty",
+                "list_findings",
+                key="FindingIds",
+                param={"DetectorId": detector_id}
+            )
+            if finding_ids:
+                findings.extend(fake_paginate(
+                    "guardduty",
+                    "get_findings",
+                    request_key="FindingIds",
+                    response_key="Findings",
+                    n=50,
+                    items=finding_ids,
+                    param={"DetectorId": detector_id}
+                ))
+        return ["guardduty", "Findings"], findings
+
+    if include_guardduty:
+        add_task(guardduty_get_findings, "guardduty")
 
     region_data = utils.execute_tasks(tasks, threads)
     if region_data is None:

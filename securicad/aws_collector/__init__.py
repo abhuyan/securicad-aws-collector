@@ -126,6 +126,7 @@ def _unpatch_botocore():
 def collect(
     config: Dict[str, Any],
     include_inspector: bool = False,
+    include_guardduty: bool = False,
     threads: Optional[int] = None,
     limit_per_second: Optional[float] = None,
     total_limit: Optional[int] = None,
@@ -165,6 +166,7 @@ def collect(
                 account["regions"],
                 account_data,
                 include_inspector,
+                include_guardduty,
                 threads,
             )
             data["accounts"].append(account_data)
@@ -318,6 +320,13 @@ def main(
         show_default=False,
         help="Include Amazon Inspector",
     ),
+    guardduty: bool = typer.Option(
+        False,
+        "--guardduty",
+        "-g",
+        show_default=False,
+        help="Include Amazon GuardDuty",
+    ),
     threads: Optional[int] = typer.Option(
         None,
         "--threads",
@@ -387,6 +396,7 @@ def main(
         output_data = collect(
             config=config_data,
             include_inspector=inspector,
+            include_guardduty=guardduty,
             threads=threads,
             limit_per_second=limit_per_second,
             total_limit=total_limit,

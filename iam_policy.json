@@ -87,7 +87,10 @@
         "kms:GetKeyPolicy",
         "eks:ListClusters",
         "eks:DescribeCluster",
-        "lambda:ListFunctions"
+        "lambda:ListFunctions",
+        "guardduty:ListFindings",
+        "guardduty:ListDetectors",
+        "guardduty:GetFindings"
       ],
       "Resource": [
         "*"
