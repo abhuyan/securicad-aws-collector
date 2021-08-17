@@ -17,74 +17,54 @@ from typing import Any, Dict
 
 CONFIG_SCHEMA: Dict[str, Any] = {
     "definitions": {
-        "nonEmptyString": {
-            "type": "string",
-            "minLength": 1,
-        },
+        "nonEmptyString": {"type": "string", "minLength": 1},
         "nonEmptyStringArray": {
             "type": "array",
-            "items": {
-                "$ref": "#/definitions/nonEmptyString",
-            },
+            "items": {"$ref": "#/definitions/nonEmptyString"},
             "minItems": 1,
         },
         "account": {
             "type": "object",
-            "properties": {
-                "access_key": {
-                    "$ref": "#/definitions/nonEmptyString",
+            "oneOf": [
+                {
+                    "properties": {
+                        "access_key": {"$ref": "#/definitions/nonEmptyString"},
+                        "secret_key": {"$ref": "#/definitions/nonEmptyString"},
+                        "session_token": {"$ref": "#/definitions/nonEmptyString"},
+                        "role": {"$ref": "#/definitions/nonEmptyString"},
+                        "regions": {"$ref": "#/definitions/nonEmptyStringArray"},
+                    },
+                    "required": ["access_key", "secret_key", "regions"],
+                    "additionalProperties": False,
                 },
-                "secret_key": {
-                    "$ref": "#/definitions/nonEmptyString",
+                {
+                    "properties": {
+                        "role": {"$ref": "#/definitions/nonEmptyString"},
+                        "regions": {"$ref": "#/definitions/nonEmptyStringArray"},
+                        "profile": {"$ref": "#/definitions/nonEmptyString"},
+                    },
+                    "additionalProperties": False,
                 },
-                "session_token": {
-                    "$ref": "#/definitions/nonEmptyString",
-                },
-                "role": {
-                    "$ref": "#/definitions/nonEmptyString",
-                },
-                "regions": {
-                    "$ref": "#/definitions/nonEmptyStringArray",
-                },
-            },
-            "additionalProperties": False,
-            "required": [
-                "access_key",
-                "secret_key",
-                "regions",
             ],
         },
         "nonEmptyAccountArray": {
             "type": "array",
-            "items": {
-                "$ref": "#/definitions/account",
-            },
+            "items": {"$ref": "#/definitions/account"},
             "minItems": 1,
         },
     },
     "type": "object",
-    "properties": {
-        "accounts": {
-            "$ref": "#/definitions/nonEmptyAccountArray",
-        },
-    },
+    "properties": {"accounts": {"$ref": "#/definitions/nonEmptyAccountArray"}},
     "additionalProperties": False,
-    "required": [
-        "accounts",
-    ],
+    "required": ["accounts"],
 }
 
 DATA_SCHEMA: Dict[str, Any] = {
     "definitions": {
-        "nonEmptyString": {
-            "type": "string",
-            "minLength": 1,
-        },
+        "nonEmptyString": {"type": "string", "minLength": 1},
         "stringArray": {
             "type": "array",
-            "items": {
-                "$ref": "#/definitions/nonEmptyString",
-            },
+            "items": {"$ref": "#/definitions/nonEmptyString"},
         },
         "globalServices": {
             "type": "object",
@@ -94,65 +74,36 @@ DATA_SCHEMA: Dict[str, Any] = {
         },
         "regionServices": {
             "type": "object",
-            "properties": {
-                "region_name": {
-                    "$ref": "#/definitions/nonEmptyString",
-                },
-            },
+            "properties": {"region_name": {"$ref": "#/definitions/nonEmptyString"}},
             "additionalProperties": True,
-            "required": [
-                "region_name",
-            ],
+            "required": ["region_name"],
         },
         "nonEmptyRegionServicesArray": {
             "type": "array",
-            "items": {
-                "$ref": "#/definitions/regionServices",
-            },
+            "items": {"$ref": "#/definitions/regionServices"},
             "minItems": 1,
         },
         "account": {
             "type": "object",
             "properties": {
-                "account_id": {
-                    "$ref": "#/definitions/nonEmptyString",
-                },
-                "account_aliases": {
-                    "$ref": "#/definitions/stringArray",
-                },
-                "global": {
-                    "$ref": "#/definitions/globalServices",
-                },
-                "regions": {
-                    "$ref": "#/definitions/nonEmptyRegionServicesArray",
-                },
+                "account_id": {"$ref": "#/definitions/nonEmptyString"},
+                "account_aliases": {"$ref": "#/definitions/stringArray"},
+                "global": {"$ref": "#/definitions/globalServices"},
+                "regions": {"$ref": "#/definitions/nonEmptyRegionServicesArray"},
             },
             "additionalProperties": False,
-            "required": [
-                "account_id",
-                "account_aliases",
-                "global",
-                "regions",
-            ],
+            "required": ["account_id", "account_aliases", "global", "regions"],
         },
         "nonEmptyAccountArray": {
             "type": "array",
-            "items": {
-                "$ref": "#/definitions/account",
-            },
+            "items": {"$ref": "#/definitions/account"},
             "minItems": 1,
         },
     },
     "type": "object",
-    "properties": {
-        "accounts": {
-            "$ref": "#/definitions/nonEmptyAccountArray",
-        },
-    },
+    "properties": {"accounts": {"$ref": "#/definitions/nonEmptyAccountArray"}},
     "additionalProperties": False,
-    "required": [
-        "accounts",
-    ],
+    "required": ["accounts"],
 }
 
 

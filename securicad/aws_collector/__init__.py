@@ -25,8 +25,6 @@ from typing import Any, Callable, Dict, Optional
 import botocore.client  # type: ignore
 import jsonschema  # type: ignore
 import typer
-from boto3.session import Session  # type: ignore
-from botocore.exceptions import ProfileNotFound  # type: ignore
 from jsonschema.exceptions import ValidationError  # type: ignore
 
 from securicad.aws_collector import account_collector, schemas, utils
@@ -139,14 +137,14 @@ def collect(
     try:
         _patch_botocore(limit_per_second, total_limit)
 
-        data: Dict[str, Any] = {
-            PARSER_VERSION_FIELD: PARSER_VERSION,
-            "accounts": [],
-        }
+        data: Dict[str, Any] = {PARSER_VERSION_FIELD: PARSER_VERSION, "accounts": []}
         account_ids = set()
         for account in config["accounts"]:
             credentials = utils.get_credentials(account)
             if credentials is None:
+                continue
+            regions = utils.get_regions(account)
+            if regions is None:
                 continue
             account_data = account_collector.get_account_data(credentials, threads)
             if account_data is None:
@@ -163,7 +161,7 @@ def collect(
             )
             account_collector.collect(
                 credentials,
-                account["regions"],
+                regions,
                 account_data,
                 include_inspector,
                 include_guardduty,
@@ -223,62 +221,25 @@ def get_config_data(
     region: Optional[str] = None,
     config: Optional[Path] = None,
 ) -> Dict[str, Any]:
-    def create_config(
-        _access_key: Optional[str],
-        _secret_key: Optional[str],
-        _session_token: Optional[str],
-        _role: Optional[str],
-        _region: Optional[str],
-    ) -> Dict[str, Any]:
-        if not _access_key:
-            raise AwsCollectorInputError("AWS Access Key has to be set")
-        if not _secret_key:
-            raise AwsCollectorInputError("AWS Secret Key has to be set")
-        if not _region:
-            raise AwsCollectorInputError("AWS Region has to be set")
-        _config = {
-            "accounts": [
-                {
-                    "access_key": _access_key,
-                    "secret_key": _secret_key,
-                    "regions": [_region],
-                }
-            ]
-        }
-        if _session_token is not None:
-            _config["accounts"][0]["session_token"] = _session_token
-        if _role is not None:
-            _config["accounts"][0]["role"] = _role
-        return _config
-
-    def create_config_from_session(session: Session) -> Dict[str, Any]:
-        credentials = session.get_credentials()
-        if not credentials:
-            raise AwsCollectorInputError("No AWS credentials found")
-        return create_config(
-            _access_key=credentials.access_key,
-            _secret_key=credentials.secret_key,
-            _session_token=credentials.token,
-            _role=role,
-            _region=region or session.region_name,
-        )
-
-    try:
-        if access_key or secret_key:
-            return create_config(
-                _access_key=access_key,
-                _secret_key=secret_key,
-                _session_token=session_token,
-                _role=role,
-                _region=region,
+    if config:
+        return utils.read_json(config)
+    account: Dict[str, Any] = {}
+    if profile:
+        account["profile"] = profile
+    elif access_key or secret_key:
+        if not access_key or not secret_key or not region:
+            raise AwsCollectorInputError(
+                "When specifying access keys, AWS Access Key, AWS Secret Key, and AWS Region must be set"
             )
-        if profile:
-            return create_config_from_session(Session(profile_name=profile))
-        if config:
-            return utils.read_json(config)
-        return create_config_from_session(Session())
-    except ProfileNotFound as e:
-        raise AwsCollectorInputError(str(e)) from e
+        account["access_key"] = access_key
+        account["secret_key"] = secret_key
+        if session_token:
+            account["session_token"] = session_token
+    if region:
+        account["regions"] = [region]
+    if role:
+        account["role"] = role
+    return {"accounts": [account]}
 
 
 @app.command()
@@ -314,25 +275,13 @@ def main(
         allow_dash=True,
     ),
     inspector: bool = typer.Option(
-        False,
-        "--inspector",
-        "-i",
-        show_default=False,
-        help="Include Amazon Inspector",
+        False, "--inspector", "-i", show_default=False, help="Include Amazon Inspector"
     ),
     guardduty: bool = typer.Option(
-        False,
-        "--guardduty",
-        "-g",
-        show_default=False,
-        help="Include Amazon GuardDuty",
+        False, "--guardduty", "-g", show_default=False, help="Include Amazon GuardDuty"
     ),
     threads: Optional[int] = typer.Option(
-        None,
-        "--threads",
-        "-t",
-        metavar="THREADS",
-        help="Number of concurrent threads",
+        None, "--threads", "-t", metavar="THREADS", help="Number of concurrent threads"
     ),
     limit_per_second: Optional[float] = typer.Option(
         None,
@@ -341,10 +290,7 @@ def main(
         help="Maximum number of API calls per second",
     ),
     total_limit: Optional[int] = typer.Option(
-        None,
-        "--total-limit",
-        metavar="LIMIT",
-        help="Maximum number of API calls",
+        None, "--total-limit", metavar="LIMIT", help="Maximum number of API calls"
     ),
     output: Path = typer.Option(
         Path("aws.json"),
@@ -365,11 +311,7 @@ def main(
         help="Only print warnings and errors",
     ),
     verbose: bool = typer.Option(
-        False,
-        "--verbose",
-        "-v",
-        show_default=False,
-        help="Print debug information",
+        False, "--verbose", "-v", show_default=False, help="Print debug information"
     ),
 ) -> None:
     """

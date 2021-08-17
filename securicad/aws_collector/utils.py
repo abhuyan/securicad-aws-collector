@@ -24,9 +24,12 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 from boto3.session import Session  # type: ignore
 from botocore.client import BaseClient  # type: ignore
 from botocore.config import Config  # type: ignore
-from botocore.exceptions import ClientError  # type: ignore
+from botocore.exceptions import ClientError, ProfileNotFound  # type: ignore
 
-from securicad.aws_collector.exceptions import AwsCollectorIOError
+from securicad.aws_collector.exceptions import (
+    AwsCollectorInputError,
+    AwsCollectorIOError,
+)
 
 if TYPE_CHECKING:
     from typing_extensions import Protocol
@@ -68,25 +71,55 @@ if TYPE_CHECKING:
             ...
 
 
-CLIENT_CONFIG = Config(
-    retries={
-        "max_attempts": 10,
-        "mode": "standard",
-    }
-)
+CLIENT_CONFIG = Config(retries={"max_attempts": 10, "mode": "standard"})
 
 log = logging.getLogger("securicad-aws-collector")
 
 
+def get_session(account: Dict[str, Any]) -> Session:
+    try:
+        if "access_key" in account and "secret_key" in account:
+            return Session(
+                aws_access_key_id=account["access_key"],
+                aws_secret_access_key=account["secret_key"],
+                aws_session_token=account.get("session_token"),
+            )
+        return Session(profile_name=account.get("profile"))
+    except ProfileNotFound as e:
+        raise AwsCollectorInputError(str(e)) from e
+
+
+def get_regions(account: Dict[str, Any]) -> Optional[List[str]]:
+    if "regions" in account:
+        return account["regions"]
+    try:
+        session = get_session(account)
+        if session.region_name:
+            return [session.region_name]
+        else:
+            log.warning(f"AWS Profile {session.profile_name} has no default region")
+    except AwsCollectorInputError as e:
+        log.warning(str(e))
+    return None
+
+
 def get_credentials(account: Dict[str, Any]) -> Optional[Dict[str, str]]:
-    credentials: Dict[str, str] = {
-        "aws_access_key_id": account["access_key"],
-        "aws_secret_access_key": account["secret_key"],
+    try:
+        session = get_session(account)
+    except AwsCollectorInputError as e:
+        log.warning(str(e))
+        return None
+    session_credentials = session.get_credentials()
+    if not session_credentials:
+        log.warning("No AWS credentials found")
+        return None
+    credentials = {
+        "aws_access_key_id": session_credentials.access_key,
+        "aws_secret_access_key": session_credentials.secret_key,
+        "aws_session_token": session_credentials.token,
     }
-    if "session_token" in account:
-        credentials["aws_session_token"] = account["session_token"]
+
     if "role" in account:
-        session = Session(**credentials)
         client = session.client("sts")
         try:
             role = client.assume_role(
