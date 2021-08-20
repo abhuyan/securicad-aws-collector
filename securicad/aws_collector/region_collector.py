@@ -18,9 +18,9 @@ from datetime import datetime, timedelta
 from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from boto3.session import Session  # type: ignore
-from botocore.client import BaseClient  # type: ignore
-from botocore.exceptions import ClientError  # type: ignore
+from boto3.session import Session
+from botocore.client import BaseClient
+from botocore.exceptions import ClientError
 
 from securicad.aws_collector import utils
 
@@ -34,13 +34,18 @@ def collect(
     include_guardduty: bool,
     threads: Optional[int],
 ) -> None:
-    session = Session(**credentials, region_name=region_data["region_name"])
+    session = Session(**credentials, region_name=region_data["region_name"])  # type: ignore
 
-    region_data.update(get_region_data(session, include_inspector, include_guardduty, threads))
+    region_data.update(
+        get_region_data(session, include_inspector, include_guardduty, threads)
+    )
 
 
 def get_region_data(
-    session: Session, include_inspector: bool, include_guardduty: bool, threads: Optional[int]
+    session: Session,
+    include_inspector: bool,
+    include_guardduty: bool,
+    threads: Optional[int],
 ) -> Dict[str, Any]:
     client_lock: Lock = Lock()
     client_cache: Dict[str, BaseClient] = {}
@@ -211,7 +216,7 @@ def get_region_data(
                     )
                 except ClientError as e:
                     if (
-                        e.response["Error"]["Code"]
+                        e.response.get("Error", {}).get("Code")
                         != "InvalidTransitGatewayAttachmentID.NotFound"
                     ):
                         raise
@@ -371,7 +376,10 @@ def get_region_data(
                     param={"ListenerArn": listener_arn},
                 )
             except ClientError as e:
-                if e.response["Error"]["Code"] != "ListenerNotFoundException":
+                if (
+                    e.response.get("Error", {}).get("Code")
+                    != "ListenerNotFoundException"
+                ):
                     raise
             return []
 
@@ -619,7 +627,10 @@ def get_region_data(
             try:
                 repository["policy"] = get_policy(repository_name)
             except ClientError as e:
-                if e.response["Error"]["Code"] != "RepositoryPolicyNotFoundException":
+                if (
+                    e.response.get("Error", {}).get("Code")
+                    != "RepositoryPolicyNotFoundException"
+                ):
                     raise
                 repository["policy"] = None
             repository["imageIds"] = get_images(repository_name)
@@ -894,18 +905,20 @@ def get_region_data(
                 "guardduty",
                 "list_findings",
                 key="FindingIds",
-                param={"DetectorId": detector_id}
+                param={"DetectorId": detector_id},
             )
             if finding_ids:
-                findings.extend(fake_paginate(
-                    "guardduty",
-                    "get_findings",
-                    request_key="FindingIds",
-                    response_key="Findings",
-                    n=50,
-                    items=finding_ids,
-                    param={"DetectorId": detector_id}
-                ))
+                findings.extend(
+                    fake_paginate(
+                        "guardduty",
+                        "get_findings",
+                        request_key="FindingIds",
+                        response_key="Findings",
+                        n=50,
+                        items=finding_ids,
+                        param={"DetectorId": detector_id},
+                    )
+                )
         return ["guardduty", "Findings"], findings
 
     if include_guardduty:

@@ -21,10 +21,10 @@ from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
 
-from boto3.session import Session  # type: ignore
-from botocore.client import BaseClient  # type: ignore
-from botocore.config import Config  # type: ignore
-from botocore.exceptions import ClientError, ProfileNotFound  # type: ignore
+from boto3.session import Session
+from botocore.client import BaseClient
+from botocore.config import Config
+from botocore.exceptions import ClientError, ProfileNotFound
 
 from securicad.aws_collector.exceptions import (
     AwsCollectorInputError,
@@ -96,8 +96,7 @@ def get_regions(account: Dict[str, Any]) -> Optional[List[str]]:
         session = get_session(account)
         if session.region_name:
             return [session.region_name]
-        else:
-            log.warning(f"AWS Profile {session.profile_name} has no default region")
+        log.warning(f"AWS Profile {session.profile_name} has no default region")
     except AwsCollectorInputError as e:
         log.warning(str(e))
     return None
@@ -126,8 +125,8 @@ def get_credentials(account: Dict[str, Any]) -> Optional[Dict[str, str]]:
                 RoleArn=account["role"], RoleSessionName="securicad"
             )
         except ClientError as e:
-            code = e.response["Error"]["Code"]
-            message = e.response["Error"]["Message"]
+            code = e.response.get("Error", {}).get("Code")
+            message = e.response.get("Error", {}).get("Message")
             if code in {
                 "InvalidClientTokenId",
                 "SignatureDoesNotMatch",
@@ -152,9 +151,7 @@ def get_client(
     def client(service_name: str) -> BaseClient:
         with client_lock:
             if service_name not in client_cache:
-                client_cache[service_name] = session.client(
-                    service_name, config=CLIENT_CONFIG
-                )
+                client_cache[service_name] = session.client(service_name, config=CLIENT_CONFIG)  # type: ignore
             return client_cache[service_name]
 
     return client
@@ -255,8 +252,8 @@ def execute_tasks(
                     obj[names[-1]] = result
             except ClientError as e:
                 name = future_to_name[future]
-                code = e.response["Error"]["Code"]
-                message = e.response["Error"]["Message"]
+                code = e.response.get("Error", {}).get("Code")
+                message = e.response.get("Error", {}).get("Message")
                 if code in {"InvalidClientTokenId", "SignatureDoesNotMatch"}:
                     log.warning(message)
                     return None

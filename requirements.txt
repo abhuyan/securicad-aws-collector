@@ -6,13 +6,13 @@
 #
 attrs==21.2.0
     # via jsonschema
-boto3==1.18.24
-    # via -r requirements.in
-botocore==1.21.24
+boto3==1.18.25
+    # via securicad-aws-collector (setup.cfg)
+botocore==1.21.25
     # via
-    #   -r requirements.in
     #   boto3
     #   s3transfer
+    #   securicad-aws-collector (setup.cfg)
 click==7.1.2
     # via typer
 jmespath==0.10.0
@@ -20,7 +20,7 @@ jmespath==0.10.0
     #   boto3
     #   botocore
 jsonschema==3.2.0
-    # via -r requirements.in
+    # via securicad-aws-collector (setup.cfg)
 pyrsistent==0.18.0
     # via jsonschema
 python-dateutil==2.8.2
@@ -32,7 +32,7 @@ six==1.16.0
     #   jsonschema
     #   python-dateutil
 typer==0.3.2
-    # via -r requirements.in
+    # via securicad-aws-collector (setup.cfg)
 urllib3==1.26.6
     # via botocore
 

@@ -22,10 +22,10 @@ from pathlib import Path
 from threading import Lock
 from typing import Any, Callable, Dict, Optional
 
-import botocore.client  # type: ignore
-import jsonschema  # type: ignore
+import botocore.client
+import jsonschema
 import typer
-from jsonschema.exceptions import ValidationError  # type: ignore
+from jsonschema.exceptions import ValidationError
 
 from securicad.aws_collector import account_collector, schemas, utils
 from securicad.aws_collector.exceptions import (
@@ -78,8 +78,8 @@ def _patch_botocore(
     if _OLD_METHOD is None:
         # pylint: disable=protected-access
         # pylint: disable=exec-used
-        _OLD_METHOD = botocore.client.ClientCreator._create_api_method
-        outer_func_ast = _get_ast(botocore.client.ClientCreator._create_api_method)
+        _OLD_METHOD = botocore.client.ClientCreator._create_api_method  # type: ignore
+        outer_func_ast = _get_ast(botocore.client.ClientCreator._create_api_method)  # type: ignore
         inner_func_ast = _get_ast(_api_call)
 
         assert len(outer_func_ast.body) == 1
@@ -109,7 +109,7 @@ def _patch_botocore(
         }
         _locals: Dict[str, Any] = {}
         exec(compile(outer_func_ast, "<string>", "exec"), _globals, _locals)
-        botocore.client.ClientCreator._create_api_method = _locals["_create_api_method"]
+        botocore.client.ClientCreator._create_api_method = _locals["_create_api_method"]  # type: ignore
 
 
 def _unpatch_botocore():
@@ -117,7 +117,7 @@ def _unpatch_botocore():
     global _OLD_METHOD
     if _OLD_METHOD is not None:
         # pylint: disable=protected-access
-        botocore.client.ClientCreator._create_api_method = _OLD_METHOD
+        botocore.client.ClientCreator._create_api_method = _OLD_METHOD  # type: ignore
         _OLD_METHOD = None
 
 
@@ -174,7 +174,7 @@ def collect(
         log.info("Finished collecting AWS environment information")
 
         # pylint: disable=protected-access
-        _globals = botocore.client.ClientCreator._create_api_method.__globals__
+        _globals = botocore.client.ClientCreator._create_api_method.__globals__  # type: ignore
         if "TOTAL_CALLS" in _globals:
             log.info(f"Total number of API calls: {_globals['TOTAL_CALLS']}")
         else:

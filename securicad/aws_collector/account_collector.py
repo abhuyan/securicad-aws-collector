@@ -17,9 +17,9 @@ import logging
 from threading import Lock
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-from boto3.session import Session  # type: ignore
-from botocore.client import BaseClient  # type: ignore
-from botocore.exceptions import ClientError  # type: ignore
+from boto3.session import Session
+from botocore.client import BaseClient
+from botocore.exceptions import ClientError
 
 from securicad.aws_collector import region_collector, utils
 from securicad.aws_collector.exceptions import AwsRegionError
@@ -30,7 +30,7 @@ log = logging.getLogger("securicad-aws-collector")
 def get_account_data(
     credentials: Dict[str, str], threads: Optional[int]
 ) -> Optional[Dict[str, Any]]:
-    session = Session(**credentials)
+    session = Session(**credentials)  # type: ignore
 
     client_lock: Lock = Lock()
     client_cache: Dict[str, BaseClient] = {}
@@ -64,7 +64,7 @@ def collect(
     include_guardduty: bool,
     threads: Optional[int],
 ) -> None:
-    session = Session(**credentials)
+    session = Session(**credentials)  # type: ignore
 
     account_data["global"] = get_global_data(session, threads)
     account_data["regions"] = []
@@ -78,7 +78,9 @@ def collect(
             continue
         log.info(f'Collecting AWS environment information of region "{region}"')
         region_data = {"region_name": region}
-        region_collector.collect(credentials, region_data, include_inspector, include_guardduty, threads)
+        region_collector.collect(
+            credentials, region_data, include_inspector, include_guardduty, threads
+        )
         account_data["regions"].append(region_data)
         region_names.add(region)
     if not account_data["regions"]:
@@ -175,7 +177,7 @@ def get_global_data(session: Session, threads: Optional[int]) -> Dict[str, Any]:
                     )["LoginProfile"]
                 }
             except ClientError as e:
-                if e.response["Error"]["Code"] == "NoSuchEntity":
+                if e.response.get("Error", {}).get("Code") == "NoSuchEntity":
                     return None
                 raise
 
@@ -346,7 +348,7 @@ def get_global_data(session: Session, threads: Optional[int]) -> Dict[str, Any]:
                 bucket["Encryption"] = get_encryption(bucket_name)
             except ClientError as e:
                 if (
-                    e.response["Error"]["Code"]
+                    e.response.get("Error", {}).get("Code")
                     != "ServerSideEncryptionConfigurationNotFoundError"
                 ):
                     raise
@@ -354,19 +356,19 @@ def get_global_data(session: Session, threads: Optional[int]) -> Dict[str, Any]:
                 # TODO: Use key "PolicyStatus" and don't use "IsPublic"
                 bucket["Public"] = get_policy_status(bucket_name)["IsPublic"]
             except ClientError as e:
-                if e.response["Error"]["Code"] != "NoSuchBucketPolicy":
+                if e.response.get("Error", {}).get("Code") != "NoSuchBucketPolicy":
                     raise
                 bucket["Public"] = False
             try:
                 bucket["Policy"] = get_policy(bucket_name)
             except ClientError as e:
-                if e.response["Error"]["Code"] != "NoSuchBucketPolicy":
+                if e.response.get("Error", {}).get("Code") != "NoSuchBucketPolicy":
                     raise
             try:
                 # TODO: Use key "TagSet"
                 bucket["Tags"] = get_tagging(bucket_name)
             except ClientError as e:
-                if e.response["Error"]["Code"] != "NoSuchTagSet":
+                if e.response.get("Error", {}).get("Code") != "NoSuchTagSet":
                     raise
         # TODO: Change to ["s3", "Buckets"]
         return ["s3buckets"], buckets
