@@ -119,7 +119,7 @@ def get_credentials(account: Dict[str, Any]) -> Optional[Dict[str, str]]:
     }
 
     if "role" in account:
-        client = session.client("sts")
+        client = session.client("sts", endpoint_url=account.get("endpoint_url"))
         try:
             role = client.assume_role(
                 RoleArn=account["role"], RoleSessionName="securicad"
