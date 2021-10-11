@@ -71,6 +71,8 @@ securicad-aws-collector --profile securicad --role arn:aws:iam::123456789012:rol
 
 ## Collecting AWS Data
 
+### Command line
+
 The securiCAD AWS Collector stores the collected data in a file named `aws.json` by default.
 This can be overridden with the command-line argument `--output`:
 
@@ -90,6 +92,54 @@ Information about other available command-line arguments can be found with the c
 ```shell
 securicad-aws-collector --help
 ```
+
+### Python
+
+You need to create a configuration for the scanner. If you have a number of accounts with a role in each of them for collecting information it might look like this.
+
+```python
+{ "accounts": [
+    {
+      "role": "arn:aws:iam::1234567891:role/aws-collector",
+      "regions": [ "eu-central-1" ]
+    }
+  ]
+}
+```
+
+For more examples of configurations please see [these examples](#3-with-a-configuration-file-specified-on-the-command-line).
+
+This could be stored in a a systems manager parameter or somewhere else. However you store it, once you have it you can simply send it in as a parameter to the collector.
+
+```python
+data = aws_collector.collect(config)
+```
+
+So an entire example might look something like this:
+
+```python
+# fetch config
+ssmclient = boto3.client("ssm")
+config_param = ssmclient.get_parameter(Name="/SecuricadCollector/config")
+text = config_param["Parameter"]["Value"]
+config = json.loads(text)
+
+# fetch environment
+data = aws_collector.collect(config)
+
+# upload data to securicad and build model
+auth_data = retrieve_auth_config()
+client = enterprise.client(
+    "https://foreseeti.enterprise.securicad.com",
+    username=auth_data["username"],
+    password=auth_data["password"],
+    organization=auth_data["organization"],
+)
+project = client.projects.get_project_by_name(name="automated")
+model_info = client.parsers.generate_aws_model(project, name="automated_scan", cli_files=[data])
+```
+
+And from that point you have a securicad model and can use it. Note that it will not have consequences set, you will need to set those with tunings. See either [this way](https://github.com/foreseeti/securicad-enterprise-sdk#high-value-assets) or [through tunings](https://github.com/foreseeti/securicad-enterprise-sdk#consequence-setting-the-consequence-of-attack-steps) for more information. If you want to run multiple scenarios you can use [batch operations](https://github.com/foreseeti/securicad-enterprise-sdk#batch-scenario-operations).
 
 ## Configuration
 
