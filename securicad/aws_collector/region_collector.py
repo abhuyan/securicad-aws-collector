@@ -378,7 +378,7 @@ def get_region_data(
             except ClientError as e:
                 if (
                     e.response.get("Error", {}).get("Code")
-                    != "ListenerNotFoundException"
+                    != "ListenerNotFound"
                 ):
                     raise
             return []
