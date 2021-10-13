@@ -6,20 +6,20 @@
 #
 attrs==21.2.0
     # via jsonschema
-boto3==1.18.44
+boto3==1.18.60
     # via securicad-aws-collector (setup.cfg)
-botocore==1.21.44
+botocore==1.21.60
     # via
     #   boto3
     #   s3transfer
     #   securicad-aws-collector (setup.cfg)
-click==8.0.1
+click==8.0.3
     # via typer
 jmespath==0.10.0
     # via
     #   boto3
     #   botocore
-jsonschema==3.2.0
+jsonschema==4.1.0
     # via securicad-aws-collector (setup.cfg)
 pyrsistent==0.18.0
     # via jsonschema
@@ -28,13 +28,8 @@ python-dateutil==2.8.2
 s3transfer==0.5.0
     # via boto3
 six==1.16.0
-    # via
-    #   jsonschema
-    #   python-dateutil
+    # via python-dateutil
 typer==0.4.0
     # via securicad-aws-collector (setup.cfg)
-urllib3==1.26.6
+urllib3==1.26.7
     # via botocore
-
-# The following packages are considered to be unsafe in a requirements file:
-# setuptools
