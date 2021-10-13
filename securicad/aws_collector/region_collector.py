@@ -376,10 +376,7 @@ def get_region_data(
                     param={"ListenerArn": listener_arn},
                 )
             except ClientError as e:
-                if (
-                    e.response.get("Error", {}).get("Code")
-                    != "ListenerNotFound"
-                ):
+                if e.response.get("Error", {}).get("Code") != "ListenerNotFound":
                     raise
             return []
 
@@ -394,12 +391,16 @@ def get_region_data(
                 listener["Rules"] = get_rules(listener["ListenerArn"])
             return listeners
 
-        load_balancers = paginate(
+        all_load_balancers = paginate(
             "elbv2", "describe_load_balancers", key="LoadBalancers"
         )
-        for load_balancer in load_balancers:
+        valid_lbs = []
+        for lb in all_load_balancers:
+            if lb["Type"] != "gateway":
+                valid_lbs.append(lb)
+        for load_balancer in valid_lbs:
             load_balancer["Listeners"] = get_listeners(load_balancer["LoadBalancerArn"])
-        return ["elbv2", "LoadBalancers"], load_balancers
+        return ["elbv2", "LoadBalancers"], valid_lbs
 
     add_task(elbv2_describe_load_balancers, "elbv2")
 
