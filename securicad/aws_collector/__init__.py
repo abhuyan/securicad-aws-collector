@@ -128,6 +128,9 @@ def collect(
     threads: Optional[int] = None,
     limit_per_second: Optional[float] = None,
     total_limit: Optional[int] = None,
+    account_done_callback: Optional[
+        Callable[[Dict[str, Any]], Any]
+    ] = None,  # Callable[[args], return type]
 ) -> Dict[str, Any]:
     try:
         jsonschema.validate(instance=config, schema=schemas.get_config_schema())
@@ -169,6 +172,8 @@ def collect(
             )
             data["accounts"].append(account_data)
             account_ids.add(account_data["account_id"])
+            if account_done_callback:
+                account_done_callback(account)
         if not data["accounts"]:
             raise AwsCredentialsError("No valid AWS credentials found")
         log.info("Finished collecting AWS environment information")
