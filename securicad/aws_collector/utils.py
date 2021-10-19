@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import base64
 import concurrent.futures
 import json
 import logging
@@ -278,6 +279,8 @@ class CustomJSONEncoder(json.JSONEncoder):
         if isinstance(o, datetime):
             # TODO: Change to o.isoformat()
             return str(o)
+        if isinstance(o, bytes):
+            return base64.b64encode(o).decode()
         return super().default(o)
 
 
