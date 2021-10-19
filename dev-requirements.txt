@@ -4,7 +4,7 @@
 #
 #    ./tools/scripts/create_requirements.sh
 #
-astroid==2.8.2
+astroid==2.8.3
     # via pylint
 attrs==21.2.0
     # via jsonschema
@@ -12,22 +12,22 @@ black==21.9b0
     # via securicad-aws-collector (setup.cfg)
 bleach==4.1.0
     # via readme-renderer
-boto3==1.18.60
+boto3==1.18.64
     # via securicad-aws-collector (setup.cfg)
-boto3-stubs==1.18.60
+boto3-stubs==1.18.64
     # via securicad-aws-collector (setup.cfg)
-botocore==1.21.60
+botocore==1.21.64
     # via
     #   boto3
     #   s3transfer
     #   securicad-aws-collector (setup.cfg)
-botocore-stubs==1.21.60
+botocore-stubs==1.21.64
     # via boto3-stubs
 build==0.7.0
     # via securicad-aws-collector (setup.cfg)
 certifi==2021.10.8
     # via requests
-cffi==1.14.6
+cffi==1.15.0
     # via cryptography
 charset-normalizer==2.0.7
     # via requests
@@ -79,7 +79,7 @@ packaging==21.0
     #   build
 pathspec==0.9.0
     # via black
-pep517==0.11.0
+pep517==0.12.0
     # via build
 pkginfo==1.7.1
     # via twine
@@ -148,7 +148,7 @@ urllib3==1.26.7
     #   requests
 webencodings==0.5.1
     # via bleach
-wrapt==1.12.1
+wrapt==1.13.2
     # via astroid
 zipp==3.6.0
     # via importlib-metadata
