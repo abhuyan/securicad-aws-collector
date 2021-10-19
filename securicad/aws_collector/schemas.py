@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy
-from typing import Any, Dict
+from __future__ import annotations
 
-CONFIG_SCHEMA: Dict[str, Any] = {
+import copy
+from typing import Any
+
+CONFIG_SCHEMA: dict[str, Any] = {
     "definitions": {
         "nonEmptyString": {"type": "string", "minLength": 1},
         "nonEmptyStringArray": {
@@ -61,7 +63,7 @@ CONFIG_SCHEMA: Dict[str, Any] = {
     "required": ["accounts"],
 }
 
-DATA_SCHEMA: Dict[str, Any] = {
+DATA_SCHEMA: dict[str, Any] = {
     "definitions": {
         "nonEmptyString": {"type": "string", "minLength": 1},
         "stringArray": {
@@ -109,12 +111,12 @@ DATA_SCHEMA: Dict[str, Any] = {
 }
 
 
-def get_config_schema() -> Dict[str, Any]:
+def get_config_schema() -> dict[str, Any]:
     config_schema = copy.deepcopy(CONFIG_SCHEMA)
     return config_schema
 
 
-def get_data_schema() -> Dict[str, Any]:
+def get_data_schema() -> dict[str, Any]:
     # pylint: disable=import-outside-toplevel, cyclic-import
     from securicad.aws_collector import PARSER_VERSION, PARSER_VERSION_FIELD
 

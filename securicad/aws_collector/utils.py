@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import concurrent.futures
 import json
 import logging
@@ -19,7 +21,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from threading import Lock
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from boto3.session import Session
 from botocore.client import BaseClient
@@ -43,8 +45,8 @@ if TYPE_CHECKING:
             self,
             service_name: str,
             operation_name: str,
-            param: Optional[Dict[str, Any]] = None,
-        ) -> Dict[str, Any]:
+            param: Optional[dict[str, Any]] = None,
+        ) -> dict[str, Any]:
             ...
 
     class PaginateCallable(Protocol):
@@ -52,9 +54,9 @@ if TYPE_CHECKING:
             self,
             service_name: str,
             operation_name: str,
-            key: str,
-            param: Optional[Dict[str, Any]] = None,
-        ) -> List[Any]:
+            key: Optional[str] = None,
+            param: Optional[dict[str, Any]] = None,
+        ) -> list[Any]:
             ...
 
     class FakePaginateCallable(Protocol):
@@ -65,9 +67,9 @@ if TYPE_CHECKING:
             request_key: str,
             response_key: str,
             n: int,
-            items: List[Any],
-            param: Optional[Dict[str, Any]] = None,
-        ) -> List[Any]:
+            items: list[Any],
+            param: Optional[dict[str, Any]] = None,
+        ) -> list[Any]:
             ...
 
 
@@ -76,7 +78,7 @@ CLIENT_CONFIG = Config(retries={"max_attempts": 10, "mode": "standard"})
 log = logging.getLogger("securicad-aws-collector")
 
 
-def get_session(account: Dict[str, Any]) -> Session:
+def get_session(account: dict[str, Any]) -> Session:
     try:
         if "access_key" in account and "secret_key" in account:
             return Session(
@@ -89,7 +91,7 @@ def get_session(account: Dict[str, Any]) -> Session:
         raise AwsCollectorInputError(str(e)) from e
 
 
-def get_regions(account: Dict[str, Any]) -> Optional[List[str]]:
+def get_regions(account: dict[str, Any]) -> Optional[list[str]]:
     if "regions" in account:
         return account["regions"]
     try:
@@ -102,7 +104,7 @@ def get_regions(account: Dict[str, Any]) -> Optional[List[str]]:
     return None
 
 
-def get_credentials(account: Dict[str, Any]) -> Optional[Dict[str, str]]:
+def get_credentials(account: dict[str, Any]) -> Optional[dict[str, str]]:
     try:
         session = get_session(account)
     except AwsCollectorInputError as e:
@@ -146,8 +148,8 @@ def is_valid_region(session: Session, region: str) -> bool:
 
 
 def get_client(
-    session: Session, client_lock: Lock, client_cache: Dict[str, BaseClient]
-) -> "ClientCallable":
+    session: Session, client_lock: Lock, client_cache: dict[str, BaseClient]
+) -> ClientCallable:
     def client(service_name: str) -> BaseClient:
         with client_lock:
             if service_name not in client_cache:
@@ -158,13 +160,13 @@ def get_client(
 
 
 def get_unpaginated(
-    session: Session, client_lock: Lock, client_cache: Dict[str, BaseClient]
-) -> "UnpaginatedCallable":
+    session: Session, client_lock: Lock, client_cache: dict[str, BaseClient]
+) -> UnpaginatedCallable:
     _client = get_client(session, client_lock, client_cache)
 
     def unpaginated(
-        service_name: str, operation_name: str, param: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        service_name: str, operation_name: str, param: Optional[dict[str, Any]] = None
+    ) -> dict[str, Any]:
         if param is None:
             param = {}
         client = _client(service_name)
@@ -178,16 +180,16 @@ def get_unpaginated(
 
 
 def get_paginate(
-    session: Session, client_lock: Lock, client_cache: Dict[str, BaseClient]
-) -> "PaginateCallable":
+    session: Session, client_lock: Lock, client_cache: dict[str, BaseClient]
+) -> PaginateCallable:
     _client = get_client(session, client_lock, client_cache)
 
     def paginate(
         service_name: str,
         operation_name: str,
-        key: str,
-        param: Optional[Dict[str, Any]] = None,
-    ) -> List[Any]:
+        key: Optional[str] = None,
+        param: Optional[dict[str, Any]] = None,
+    ) -> list[Any]:
         if param is None:
             param = {}
         client = _client(service_name)
@@ -195,15 +197,18 @@ def get_paginate(
         page_iterator = paginator.paginate(**param)
         result = []
         for page in page_iterator:
-            result.extend(page[key])
+            if key:
+                result.extend(page[key])
+            else:
+                result.append(page)
         return result
 
     return paginate
 
 
 def get_fake_paginate(
-    session: Session, client_lock: Lock, client_cache: Dict[str, BaseClient]
-) -> "FakePaginateCallable":
+    session: Session, client_lock: Lock, client_cache: dict[str, BaseClient]
+) -> FakePaginateCallable:
     _unpaginated = get_unpaginated(session, client_lock, client_cache)
 
     def fake_paginate(
@@ -212,9 +217,9 @@ def get_fake_paginate(
         request_key: str,
         response_key: str,
         n: int,
-        items: List[Any],
-        param: Optional[Dict[str, Any]] = None,
-    ) -> List[Any]:
+        items: list[Any],
+        param: Optional[dict[str, Any]] = None,
+    ) -> list[Any]:
         if param is None:
             param = {}
         head = None
@@ -233,9 +238,9 @@ def get_fake_paginate(
 
 
 def execute_tasks(
-    tasks: List[Callable[[], Tuple[List[str], Any]]], threads: Optional[int]
-) -> Optional[Dict[str, Any]]:
-    output: Dict[str, Any] = {}
+    tasks: list[Callable[[], tuple[list[str], Any]]], threads: Optional[int]
+) -> Optional[dict[str, Any]]:
+    output: dict[str, Any] = {}
     threads = len(tasks) if threads is None else threads
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
         future_to_name = {executor.submit(task): task.__name__ for task in tasks}

@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
+
 import ast
 import inspect
 import json
@@ -20,7 +22,7 @@ import sys
 import time
 from pathlib import Path
 from threading import Lock
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Optional
 
 import botocore.client
 import jsonschema
@@ -56,17 +58,17 @@ def _patch_botocore(
         global TOTAL_CALLS
 
         if args:
-            raise TypeError(f"{py_operation_name}() only accepts keyword arguments.")
+            raise TypeError(f"{py_operation_name}() only accepts keyword arguments.")  # type: ignore
 
-        with LOCK:
-            if TOTAL_LIMIT:
-                if TOTAL_CALLS >= TOTAL_LIMIT:
-                    raise AwsRateLimitError("Maximum number of API calls exceeded")
-            TOTAL_CALLS += 1
-            if DELAY:
-                time.sleep(DELAY)
-                return self._make_api_call(operation_name, kwargs)
-        return self._make_api_call(operation_name, kwargs)
+        with LOCK:  # type: ignore
+            if TOTAL_LIMIT:  # type: ignore
+                if TOTAL_CALLS >= TOTAL_LIMIT:  # type: ignore
+                    raise AwsRateLimitError("Maximum number of API calls exceeded")  # type: ignore
+            TOTAL_CALLS += 1  # type: ignore
+            if DELAY:  # type: ignore
+                time.sleep(DELAY)  # type: ignore
+                return self._make_api_call(operation_name, kwargs)  # type: ignore
+        return self._make_api_call(operation_name, kwargs)  # type: ignore
 
     def _get_ast(obj: Callable) -> ast.Module:
         lines = inspect.getsource(obj).splitlines()
@@ -101,13 +103,13 @@ def _patch_botocore(
         for line in reversed(lines):
             outer_func_ast.body[0].body.insert(0, ast.parse(line).body[0])
 
-        _globals: Dict[str, Any] = {
+        _globals: dict[str, Any] = {
             "LOCK": Lock(),
             "DELAY": 1 / limit_per_second if limit_per_second else None,
             "TOTAL_CALLS": 0,
             "TOTAL_LIMIT": total_limit,
         }
-        _locals: Dict[str, Any] = {}
+        _locals: dict[str, Any] = {}
         exec(compile(outer_func_ast, "<string>", "exec"), _globals, _locals)
         botocore.client.ClientCreator._create_api_method = _locals["_create_api_method"]  # type: ignore
 
@@ -122,16 +124,16 @@ def _unpatch_botocore():
 
 
 def collect(
-    config: Dict[str, Any],
+    config: dict[str, Any],
     include_inspector: bool = False,
     include_guardduty: bool = False,
     threads: Optional[int] = None,
     limit_per_second: Optional[float] = None,
     total_limit: Optional[int] = None,
     account_done_callback: Optional[
-        Callable[[Dict[str, Any]], Any]
+        Callable[[dict[str, Any]], Any]
     ] = None,  # Callable[[args], return type]
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     try:
         jsonschema.validate(instance=config, schema=schemas.get_config_schema())
     except ValidationError as e:
@@ -140,7 +142,7 @@ def collect(
     try:
         _patch_botocore(limit_per_second, total_limit)
 
-        data: Dict[str, Any] = {PARSER_VERSION_FIELD: PARSER_VERSION, "accounts": []}
+        data: dict[str, Any] = {PARSER_VERSION_FIELD: PARSER_VERSION, "accounts": []}
         account_ids = set()
         for account in config["accounts"]:
             credentials = utils.get_credentials(account)
@@ -225,10 +227,10 @@ def get_config_data(
     role: Optional[str] = None,
     region: Optional[str] = None,
     config: Optional[Path] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     if config:
         return utils.read_json(config)
-    account: Dict[str, Any] = {}
+    account: dict[str, Any] = {}
     if profile:
         account["profile"] = profile
     elif access_key or secret_key:
