@@ -652,15 +652,21 @@ def get_region_data(
             ) -> list[dict[str, Any]]:
                 if not images:
                     return []
-                return paginate(
-                    "ecr",
-                    "describe_images",
-                    key="imageDetails",
-                    param={
-                        "repositoryName": repository_name,
-                        "imageIds": images,
-                    },
-                )
+                try:
+                    return fake_paginate(
+                        "ecr",
+                        "describe_images",
+                        request_key="imageIds",
+                        response_key="imageDetails",
+                        n=100,
+                        items=images,
+                        param={
+                            "repositoryName": repository_name,
+                            "filter": {"tagStatus": "TAGGED"},
+                        },
+                    )
+                except ClientError:
+                    return []
 
             def get_findings(repository_name: str, image: dict[str, Any]):
                 return paginate(
@@ -680,6 +686,7 @@ def get_region_data(
                 )["tags"]
 
             images = []
+            non_dh_images = []
             for cluster in prev_region_data["ecs"]:
                 for task in cluster.get("tasks", []):
                     for container in task.get("containers", []):
@@ -690,12 +697,13 @@ def get_region_data(
                             image_tag = image.split("@")[1]
                         else:
                             image_tag = "latest"
-                        images.append(
-                            {
-                                "imageDigest": container["imageDigest"],
-                                "imageTag": image_tag,
-                            }
-                        )
+                        image_id = {
+                            "imageDigest": container["imageDigest"],
+                            "imageTag": image_tag,
+                        }
+                        images.append(image_id)
+                        if "/" in image:
+                            non_dh_images.append(image_id)
 
             repositories = paginate("ecr", "describe_repositories", key="repositories")
             for repository in repositories:
@@ -709,10 +717,10 @@ def get_region_data(
                     ):
                         raise
                     repository["policy"] = None
-                repository["imageDetails"] = get_images(repository_name, images)
+                repository["imageDetails"] = get_images(repository_name, non_dh_images)
                 repository["tags"] = get_tags(repository["repositoryArn"])
                 for image_details in repository["imageDetails"]:
-                    for image in images:
+                    for image in non_dh_images:
                         if (
                             image_details["imageDigest"] == image["imageDigest"]
                             and image["imageTag"] in image_details["imageTags"]
