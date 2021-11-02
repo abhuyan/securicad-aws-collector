@@ -413,15 +413,20 @@ def get_region_data(
         log.debug("Executing elbv2 describe-target-groups, describe-target-health")
 
         def get_targets(target_group_arn: str) -> list[dict[str, Any]]:
-            target_health_descriptions = unpaginated(
-                "elbv2",
-                "describe_target_health",
-                param={"TargetGroupArn": target_group_arn},
-            )["TargetHealthDescriptions"]
-            return [
-                target_health_description["Target"]
-                for target_health_description in target_health_descriptions
-            ]
+            try:
+                target_health_descriptions = unpaginated(
+                    "elbv2",
+                    "describe_target_health",
+                    param={"TargetGroupArn": target_group_arn},
+                )["TargetHealthDescriptions"]
+                return [
+                    target_health_description["Target"]
+                    for target_health_description in target_health_descriptions
+                ]
+            except ClientError as e:
+                if e.response.get("Error", {}).get("Code") != "TargetGroupNotFound":
+                    raise
+                return []
 
         target_groups = paginate("elbv2", "describe_target_groups", key="TargetGroups")
         for target_group in target_groups:
@@ -665,18 +670,33 @@ def get_region_data(
                             "filter": {"tagStatus": "TAGGED"},
                         },
                     )
-                except ClientError:
+                except ClientError as e:
+                    if (
+                        e.response.get("Error", {}).get("Code")
+                        != "ImageNotFoundException"
+                    ):
+                        raise
+                    # message = e.response["Error"]["Message"]
+                    # message = "The image with imageId {imageDigest:'sha256:x', imageTag:'x'} does not exist within the repository with name 'x' in the registry with id 'x'"
                     return []
 
             def get_findings(repository_name: str, image: dict[str, Any]):
-                return paginate(
-                    "ecr",
-                    "describe_image_scan_findings",
-                    param={
-                        "repositoryName": repository_name,
-                        "imageId": image,
-                    },
-                )
+                try:
+                    return paginate(
+                        "ecr",
+                        "describe_image_scan_findings",
+                        param={
+                            "repositoryName": repository_name,
+                            "imageId": image,
+                        },
+                    )
+                except ClientError as e:
+                    if e.response.get("Error", {}).get("Code") not in {
+                        "ImageNotFoundException",
+                        "ScanNotFoundException",
+                    }:
+                        raise
+                    return []
 
             def get_tags(arn: str) -> list[dict[str, Any]]:
                 return unpaginated(
@@ -690,6 +710,8 @@ def get_region_data(
             for cluster in prev_region_data["ecs"]:
                 for task in cluster.get("tasks", []):
                     for container in task.get("containers", []):
+                        if "imageDigest" not in container:
+                            continue
                         image = container["image"]
                         if ":" in image:
                             image_tag = image.split(":")[1]

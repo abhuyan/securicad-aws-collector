@@ -349,10 +349,10 @@ def get_global_data(session: Session, threads: Optional[int]) -> dict[str, Any]:
                 # TODO: Use key "ServerSideEncryptionConfiguration"
                 bucket["Encryption"] = get_encryption(bucket_name)
             except ClientError as e:
-                if (
-                    e.response.get("Error", {}).get("Code")
-                    != "ServerSideEncryptionConfigurationNotFoundError"
-                ):
+                if e.response.get("Error", {}).get("Code") not in {
+                    "NoSuchBucket",
+                    "ServerSideEncryptionConfigurationNotFoundError",
+                }:
                     raise
             try:
                 # TODO: Use key "PolicyStatus" and don't use "IsPublic"
