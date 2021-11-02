@@ -36,9 +36,9 @@ from securicad.aws_collector.exceptions import (
     AwsCredentialsError,
 )
 
-__version__ = "1.3.3rc3"
+__version__ = "2.0.0"
 
-PARSER_VERSION = 8
+PARSER_VERSION = 9
 PARSER_VERSION_FIELD = "parser_version"
 
 log = logging.getLogger("securicad-aws-collector")

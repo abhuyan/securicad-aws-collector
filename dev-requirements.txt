@@ -4,24 +4,24 @@
 #
 #    ./tools/scripts/create_requirements.sh
 #
-astroid==2.8.3
+astroid==2.8.4
     # via pylint
 attrs==21.2.0
     # via jsonschema
-black==21.9b0
+black==21.10b0
     # via securicad-aws-collector (setup.cfg)
 bleach==4.1.0
     # via readme-renderer
-boto3==1.18.64
+boto3==1.19.8
     # via securicad-aws-collector (setup.cfg)
-boto3-stubs==1.18.64
+boto3-stubs==1.19.8
     # via securicad-aws-collector (setup.cfg)
-botocore==1.21.64
+botocore==1.22.8
     # via
     #   boto3
     #   s3transfer
     #   securicad-aws-collector (setup.cfg)
-botocore-stubs==1.21.64
+botocore-stubs==1.22.8
     # via boto3-stubs
 build==0.7.0
     # via securicad-aws-collector (setup.cfg)
@@ -39,7 +39,7 @@ colorama==0.4.4
     # via twine
 cryptography==35.0.0
     # via secretstorage
-docutils==0.17.1
+docutils==0.18
     # via readme-renderer
 idna==3.3
     # via requests
@@ -59,7 +59,7 @@ jmespath==0.10.0
     # via
     #   boto3
     #   botocore
-jsonschema==4.1.0
+jsonschema==4.1.2
     # via securicad-aws-collector (setup.cfg)
 keyring==23.2.1
     # via twine
@@ -73,7 +73,7 @@ mypy-extensions==0.4.3
     # via
     #   black
     #   mypy
-packaging==21.0
+packaging==21.2
     # via
     #   bleach
     #   build
@@ -101,7 +101,7 @@ python-dateutil==2.8.2
     # via botocore
 readme-renderer==30.0
     # via twine
-regex==2021.10.8
+regex==2021.11.1
     # via black
 requests==2.26.0
     # via
@@ -123,7 +123,7 @@ toml==0.10.2
     # via
     #   mypy
     #   pylint
-tomli==1.2.1
+tomli==1.2.2
     # via
     #   black
     #   build
@@ -140,6 +140,8 @@ typing-extensions==3.10.0.2
     # via
     #   astroid
     #   black
+    #   boto3-stubs
+    #   botocore-stubs
     #   mypy
     #   pylint
 urllib3==1.26.7
@@ -148,7 +150,7 @@ urllib3==1.26.7
     #   requests
 webencodings==0.5.1
     # via bleach
-wrapt==1.13.2
+wrapt==1.13.3
     # via astroid
 zipp==3.6.0
     # via importlib-metadata
