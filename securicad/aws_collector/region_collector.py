@@ -707,7 +707,7 @@ def get_region_data(
 
             images = []
             non_dh_images = []
-            for cluster in prev_region_data["ecs"]:
+            for cluster in prev_region_data.get("ecs", []):
                 for task in cluster.get("tasks", []):
                     for container in task.get("containers", []):
                         if "imageDigest" not in container:
