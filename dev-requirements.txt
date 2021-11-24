@@ -4,24 +4,24 @@
 #
 #    ./tools/scripts/create_requirements.sh
 #
-astroid==2.8.4
+astroid==2.8.6
     # via pylint
 attrs==21.2.0
     # via jsonschema
-black==21.10b0
+black==21.11b1
     # via securicad-aws-collector (setup.cfg)
 bleach==4.1.0
     # via readme-renderer
-boto3==1.19.8
+boto3==1.20.12
     # via securicad-aws-collector (setup.cfg)
-boto3-stubs==1.19.8
+boto3-stubs==1.20.12
     # via securicad-aws-collector (setup.cfg)
-botocore==1.22.8
+botocore==1.23.12
     # via
     #   boto3
     #   s3transfer
     #   securicad-aws-collector (setup.cfg)
-botocore-stubs==1.22.8
+botocore-stubs==1.23.12
     # via boto3-stubs
 build==0.7.0
     # via securicad-aws-collector (setup.cfg)
@@ -37,17 +37,19 @@ click==8.0.3
     #   typer
 colorama==0.4.4
     # via twine
-cryptography==35.0.0
+cryptography==36.0.0
     # via secretstorage
-docutils==0.18
+docutils==0.18.1
     # via readme-renderer
 idna==3.3
     # via requests
-importlib-metadata==4.8.1
+importlib-metadata==4.8.2
     # via
     #   keyring
     #   twine
-isort==5.9.3
+importlib-resources==5.4.0
+    # via jsonschema
+isort==5.10.1
     # via
     #   pylint
     #   securicad-aws-collector (setup.cfg)
@@ -59,7 +61,7 @@ jmespath==0.10.0
     # via
     #   boto3
     #   botocore
-jsonschema==4.1.2
+jsonschema==4.2.1
     # via securicad-aws-collector (setup.cfg)
 keyring==23.2.1
     # via twine
@@ -73,7 +75,7 @@ mypy-extensions==0.4.3
     # via
     #   black
     #   mypy
-packaging==21.2
+packaging==21.3
     # via
     #   bleach
     #   build
@@ -81,19 +83,19 @@ pathspec==0.9.0
     # via black
 pep517==0.12.0
     # via build
-pkginfo==1.7.1
+pkginfo==1.8.1
     # via twine
 platformdirs==2.4.0
     # via
     #   black
     #   pylint
-pycparser==2.20
+pycparser==2.21
     # via cffi
 pygments==2.10.0
     # via readme-renderer
 pylint==2.11.1
     # via securicad-aws-collector (setup.cfg)
-pyparsing==2.4.7
+pyparsing==3.0.6
     # via packaging
 pyrsistent==0.18.0
     # via jsonschema
@@ -101,7 +103,7 @@ python-dateutil==2.8.2
     # via botocore
 readme-renderer==30.0
     # via twine
-regex==2021.11.1
+regex==2021.11.10
     # via black
 requests==2.26.0
     # via
@@ -130,13 +132,13 @@ tomli==1.2.2
     #   pep517
 tqdm==4.62.3
     # via twine
-twine==3.4.2
+twine==3.6.0
     # via securicad-aws-collector (setup.cfg)
 typer==0.4.0
     # via securicad-aws-collector (setup.cfg)
 types-jsonschema==3.2.1
     # via securicad-aws-collector (setup.cfg)
-typing-extensions==3.10.0.2
+typing-extensions==4.0.0
     # via
     #   astroid
     #   black
@@ -153,7 +155,9 @@ webencodings==0.5.1
 wrapt==1.13.3
     # via astroid
 zipp==3.6.0
-    # via importlib-metadata
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools
