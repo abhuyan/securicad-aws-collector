@@ -36,7 +36,7 @@ from securicad.aws_collector.exceptions import (
     AwsCredentialsError,
 )
 
-__version__ = "2.0.1"
+__version__ = "2.0.2"
 
 PARSER_VERSION = 9
 PARSER_VERSION_FIELD = "parser_version"
