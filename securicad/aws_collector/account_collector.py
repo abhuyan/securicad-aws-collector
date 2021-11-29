@@ -342,6 +342,52 @@ def get_global_data(session: Session, threads: Optional[int]) -> dict[str, Any]:
                 "s3", "get_bucket_tagging", param={"Bucket": bucket_name}
             )["TagSet"]
 
+        def get_acl(bucket_name: str, policy) -> tuple[dict[str, Any], bool]:
+            acl = unpaginated("s3", "get_bucket_acl", param={"Bucket": bucket_name})
+            statements = []
+            public = False
+            for grant in acl.get("Grants", []):
+                grantee = grant.get("Grantee", {})
+                uri_grantee = grantee.get("URI")
+                if uri_grantee in [
+                    "http://acs.amazonaws.com/groups/global/AllUsers",
+                    "http://acs.amazonaws.com/groups/global/AuthenticatedUsers",
+                ]:
+                    permission = grant.get("Permission")
+                    if permission == "FULL_CONTROL":
+                        action = "s3:*"
+                    elif permission == "READ":
+                        action = ["s3:GetObject"]
+                    elif permission == "WRITE":
+                        action = ["s3:PutObject"]
+                    else:
+                        continue
+                    public = True
+                    statement = {
+                        "Effect": "Allow",
+                        "Principal": "*",
+                        "Action": action,
+                        "Resource": [
+                            f"arn:aws:s3:::{bucket_name}",
+                            f"arn:aws:s3:::{bucket_name}/*",
+                        ],
+                    }
+                    statements.append(statement)
+
+            if policy:
+                statement = policy["Statement"]
+                if isinstance(statement, list):
+                    policy["Statement"].extend(statements)
+                else:
+                    statements.append(statement)
+                    policy["Statement"] = statements
+                return policy, public
+
+            return {
+                "Version": "2012-10-17",
+                "Statement": statements,
+            }, public
+
         buckets = unpaginated("s3", "list_buckets")["Buckets"]
         for bucket in buckets:
             bucket_name = bucket["Name"]
@@ -366,6 +412,12 @@ def get_global_data(session: Session, threads: Optional[int]) -> dict[str, Any]:
             except ClientError as e:
                 if e.response.get("Error", {}).get("Code") != "NoSuchBucketPolicy":
                     raise
+            try:
+                policy, public = get_acl(bucket_name, bucket.get("Policy"))
+                bucket["Policy"] = policy
+                bucket["Public"] = bucket["Public"] or public
+            except ClientError as e:
+                pass
             try:
                 # TODO: Use key "TagSet"
                 bucket["Tags"] = get_tagging(bucket_name)
