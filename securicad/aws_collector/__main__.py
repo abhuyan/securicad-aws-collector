@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from securicad.aws_collector import app
+from .main import app
 
 if __name__ == "__main__":
     app(prog_name="securicad-aws-collector")

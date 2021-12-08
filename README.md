@@ -20,6 +20,8 @@ A Python package for collecting AWS data for use in [foreseeti's securiCAD](http
 
 ## Installation
 
+You need at least python 3.8 for this to work.
+
 Install `securicad-aws-collector` with pip:
 
 ```shell
