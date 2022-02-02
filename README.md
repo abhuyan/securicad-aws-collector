@@ -422,6 +422,6 @@ If `AWS_PROFILE` is not set, the default profile is used.
 
 ## License
 
-Copyright © 2019-2021 [Foreseeti AB](https://foreseeti.com)
+Copyright © 2019-2022 [Foreseeti AB](https://foreseeti.com)
 
 Licensed under the [Apache License, Version 2.0](https://www.apache.org/licenses/LICENSE-2.0)
