@@ -27,4 +27,4 @@ from .main import PARSER_VERSION_FIELD as PARSER_VERSION_FIELD
 from .main import collect as collect
 from .main import get_config_data as get_config_data
 
-__version__ = "2.0.2"
+__version__ = "2.1.0rc1"
