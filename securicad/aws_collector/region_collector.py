@@ -43,6 +43,86 @@ def collect(
     )
 
 
+def wafv2_get_web_acls_wrapper(
+    scope: str, unpaginated: utils.UnpaginatedCallable
+) -> Callable[[], tuple[list[str], Any]]:
+    def wafv2_get_web_acls() -> tuple[list[str], Any]:
+        log.debug("Executing wafv2 list-web-acls list-resources-for-web-acl")
+        acls = unpaginated("wafv2", "list_web_acls", param={"Scope": scope})["WebACLs"]
+        for acl in acls:
+            if scope == "REGIONAL":
+                lb_resources = unpaginated(
+                    "wafv2",
+                    "list_resources_for_web_acl",
+                    param={
+                        "WebACLArn": acl["ARN"],
+                        "ResourceType": "APPLICATION_LOAD_BALANCER",
+                    },
+                )["ResourceArns"]
+                apigw_resources = unpaginated(
+                    "wafv2",
+                    "list_resources_for_web_acl",
+                    param={"WebACLArn": acl["ARN"], "ResourceType": "API_GATEWAY"},
+                )["ResourceArns"]
+            else:
+                lb_resources = []
+                apigw_resources = []
+            acl_details = unpaginated(
+                "wafv2",
+                "get_web_acl",
+                param={"Name": acl["Name"], "Scope": scope, "Id": acl["Id"]},
+            )["WebACL"]
+            tags = unpaginated(
+                "wafv2", "list_tags_for_resource", param={"ResourceARN": acl["ARN"]}
+            )["TagInfoForResource"]
+            acl["ALBResourceArns"] = lb_resources
+            acl["APIGWResourceArns"] = apigw_resources
+            acl.update(acl_details)
+            acl.update(tags)
+        return ["wafv2", "WebACLs"], acls
+
+    return wafv2_get_web_acls
+
+
+def wafv2_get_ip_sets_wrapper(
+    scope: str, unpaginated: utils.UnpaginatedCallable
+) -> Callable[[], tuple[list[str], Any]]:
+    def wafv2_get_ip_sets() -> tuple[list[str], Any]:
+        ip_sets = unpaginated("wafv2", "list_ip_sets", param={"Scope": scope})["IPSets"]
+        for ip_set in ip_sets:
+            ip_set_details = unpaginated(
+                "wafv2",
+                "get_ip_set",
+                param={"Name": ip_set["Name"], "Scope": scope, "Id": ip_set["Id"]},
+            )["IPSet"]
+            tags = unpaginated(
+                "wafv2", "list_tags_for_resource", param={"ResourceARN": ip_set["ARN"]}
+            )["TagInfoForResource"]
+            ip_set.update(ip_set_details)
+            ip_set.update(tags)
+        return ["wafv2", "IPSets"], ip_sets
+
+    return wafv2_get_ip_sets
+
+
+def collect_cloudfront_waf(
+    credentials: dict[str, str],
+    threads: Optional[int],
+) -> dict[str, Any]:
+    """CloudFront WAFs are global but must be collected by calling the us-east-1 endpoint:
+    https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/wafv2.html#WAFV2.Client.list_web_acls"""
+    session = Session(**credentials, region_name="us-east-1")  # type: ignore
+    client_lock: Lock = Lock()
+    client_cache: dict[str, BaseClient] = {}
+    unpaginated = utils.get_unpaginated(session, client_lock, client_cache)
+    tasks = [
+        wafv2_get_web_acls_wrapper("CLOUDFRONT", unpaginated),
+        wafv2_get_ip_sets_wrapper("CLOUDFRONT", unpaginated),
+    ]
+    wafv2_data = utils.execute_tasks(tasks, threads)
+    return wafv2_data
+
+
 def get_region_data(
     session: Session,
     include_inspector: bool,
@@ -884,8 +964,15 @@ def get_region_data(
 
     def apigateway_get_rest_apis() -> tuple[list[str], Any]:
         log.debug(
-            "Executing apigateway get-rest-apis, get-authorizers, get-deployments, get-request-validators, get-stages, get-resources, get-method"
+            "Executing apigateway get-rest-apis, get-authorizers, get-deployments, get-request-validators, get-stages, get-resources, get-method, get-vpc-links"
         )
+
+        def get_vpc_links() -> list[dict[str, Any]]:
+            return paginate(
+                "apigateway",
+                "get_vpc_links",
+                key="items",
+            )
 
         def get_authorizers(rest_api_id: str) -> list[dict[str, Any]]:
             return paginate(
@@ -940,6 +1027,7 @@ def get_region_data(
         rest_apis = paginate("apigateway", "get_rest_apis", key="items")
         for rest_api in rest_apis:
             rest_api_id = rest_api["id"]
+            rest_api["vpcLinks"] = get_vpc_links()
             rest_api["authorizers"] = get_authorizers(rest_api_id)
             rest_api["deployments"] = get_deployments(rest_api_id)
             rest_api["requestValidators"] = get_request_validators(rest_api_id)
@@ -1050,59 +1138,8 @@ def get_region_data(
     if include_guardduty:
         add_task(guardduty_get_findings, "guardduty")
 
-    def wafv2_get_web_acls() -> tuple[list[str], Any]:
-        log.debug("Executing wafv2 list-web-acls list-resources-for-web-acl")
-        acls = unpaginated("wafv2", "list_web_acls", param={"Scope": "REGIONAL"})[
-            "WebACLs"
-        ]
-        for acl in acls:
-            lb_resources = unpaginated(
-                "wafv2",
-                "list_resources_for_web_acl",
-                param={
-                    "WebACLArn": acl["ARN"],
-                    "ResourceType": "APPLICATION_LOAD_BALANCER",
-                },
-            )["ResourceArns"]
-            apigw_resources = unpaginated(
-                "wafv2",
-                "list_resources_for_web_acl",
-                param={"WebACLArn": acl["ARN"], "ResourceType": "API_GATEWAY"},
-            )["ResourceArns"]
-            acl_details = unpaginated(
-                "wafv2",
-                "get_web_acl",
-                param={"Name": acl["Name"], "Scope": "REGIONAL", "Id": acl["Id"]},
-            )["WebACL"]
-            tags = unpaginated(
-                "wafv2", "list_tags_for_resource", param={"ResourceARN": acl["ARN"]}
-            )["TagInfoForResource"]
-            acl["ALBResourceArns"] = lb_resources
-            acl["APIGWResourceArns"] = apigw_resources
-            acl.update(acl_details)
-            acl.update(tags)
-        return ["wafv2", "WebACLs"], acls
-
-    add_task(wafv2_get_web_acls, "wafv2")
-
-    def wafv2_get_ip_sets() -> tuple[list[str], Any]:
-        ip_sets = unpaginated("wafv2", "list_ip_sets", param={"Scope": "REGIONAL"})[
-            "IPSets"
-        ]
-        for ip_set in ip_sets:
-            ip_set_details = unpaginated(
-                "wafv2",
-                "get_ip_set",
-                param={"Name": ip_set["Name"], "Scope": "REGIONAL", "Id": ip_set["Id"]},
-            )["IPSet"]
-            tags = unpaginated(
-                "wafv2", "list_tags_for_resource", param={"ResourceARN": ip_set["ARN"]}
-            )["TagInfoForResource"]
-            ip_set.update(ip_set_details)
-            ip_set.update(tags)
-        return ["wafv2", "IPSets"], ip_sets
-
-    add_task(wafv2_get_ip_sets, "wafv2")
+    add_task(wafv2_get_web_acls_wrapper("REGIONAL", unpaginated))
+    add_task(wafv2_get_ip_sets_wrapper("REGIONAL", unpaginated))
 
     # phase 1, everything except ecr
     region_data = utils.execute_tasks(tasks, threads)

@@ -55,7 +55,7 @@ if TYPE_CHECKING:
             self,
             service_name: str,
             operation_name: str,
-            key: Optional[str] = None,
+            key: Optional[str | list[str]] = None,
             param: Optional[dict[str, Any]] = None,
         ) -> list[Any]:
             ...
@@ -188,7 +188,7 @@ def get_paginate(
     def paginate(
         service_name: str,
         operation_name: str,
-        key: Optional[str] = None,
+        key: Optional[str | list[str]] = None,
         param: Optional[dict[str, Any]] = None,
     ) -> list[Any]:
         if param is None:
@@ -199,7 +199,16 @@ def get_paginate(
         result = []
         for page in page_iterator:
             if key:
-                result.extend(page[key])
+                if isinstance(key, list):
+                    _page = page
+                    for k in key:
+                        _page = _page.get(k, None)
+                        if _page is None:
+                            break
+                    if _page:
+                        result.extend(_page)
+                elif isinstance(key, str):
+                    result.extend(page[key])
             else:
                 result.append(page)
         return result

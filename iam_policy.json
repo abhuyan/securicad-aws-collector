@@ -5,6 +5,7 @@
       "Effect": "Allow",
       "Action": [
         "autoscaling:Describe*",
+        "cloudfront:List*",
         "ec2:Describe*",
         "ec2:GetTransitGatewayAttachmentPropagations",
         "ec2:SearchTransitGatewayRoutes",
@@ -64,7 +65,9 @@
         "arn:aws:apigateway:*::/apis",
         "arn:aws:apigateway:*::/apis/*/authorizers",
         "arn:aws:apigateway:*::/apis/*/integrations",
-        "arn:aws:apigateway:*::/apis/*/routes"
+        "arn:aws:apigateway:*::/apis/*/routes",
+        "arn:aws:apigateway:*::/vpclinks",
+        "arn:aws:apigateway:*::/vpclinks/*"
       ]
     }
   ]

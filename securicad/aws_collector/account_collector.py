@@ -85,6 +85,7 @@ def collect(
         )
         account_data["regions"].append(region_data)
         region_names.add(region)
+    account_data["global"].update(region_collector.collect_cloudfront_waf(credentials, threads))
     if not account_data["regions"]:
         raise AwsRegionError("No valid AWS Region found")
 
@@ -428,6 +429,17 @@ def get_global_data(session: Session, threads: Optional[int]) -> dict[str, Any]:
         return ["s3buckets"], buckets
 
     tasks.append(s3api_list_buckets)
+
+    def cloudfront_list_distributions() -> tuple[list[str], Any]:
+        log.debug("Executing cloudfront list-distributions")
+        distributions = paginate(
+            "cloudfront",
+            "list_distributions",
+            key=["DistributionList", "Items"],
+        )
+        return ["cloudfront", "DistributionList"], distributions
+
+    tasks.append(cloudfront_list_distributions)
 
     global_data = utils.execute_tasks(tasks, threads)
     if global_data is None:
