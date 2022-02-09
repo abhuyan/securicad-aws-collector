@@ -1067,6 +1067,12 @@ def get_region_data(
             "Executing apigatewayv2 get-apis, get-routes, get-integrations, get-authorizers"
         )
 
+        def get_vpc_links() -> list[dict[str, Any]]:
+            return unpaginated(
+                "apigatewayv2",
+                "get_vpc_links",
+            )["Items"]
+
         def get_apis() -> list[dict[str, Any]]:
             return paginate(
                 "apigatewayv2",
@@ -1104,6 +1110,7 @@ def get_region_data(
             api["Routes"] = get_routes(api_id)
             api["Authorizers"] = get_authorizers(api_id)
             api["Integrations"] = get_integrations(api_id)
+            api["VpcLinks"] = get_vpc_links()
 
         return ["apigatewayv2", "Apis"], apis
 
