@@ -85,7 +85,9 @@ def collect(
         )
         account_data["regions"].append(region_data)
         region_names.add(region)
-    account_data["global"].update(region_collector.collect_cloudfront_waf(credentials, threads))
+    account_data["global"].update(
+        region_collector.collect_cloudfront_waf(credentials, threads)
+    )
     if not account_data["regions"]:
         raise AwsRegionError("No valid AWS Region found")
 
@@ -100,7 +102,7 @@ def get_global_data(session: Session, threads: Optional[int]) -> dict[str, Any]:
 
     def iam_list_users() -> tuple[list[str], Any]:
         log.debug(
-            "Executing iam list-virtual-mfa-devices, list-users, list-access-keys, list-attached-user-policies, list-user-policies, get-user-policy, list-groups-for-user, list-mfa-devices, get-login-profile"
+            "Executing iam list-virtual-mfa-devices, list-users, list-access-keys, list-attached-user-policies, list-user-policies, get-user-policy, list-groups-for-user, list-mfa-devices, get-login-profile, list-user-tags"
         )
 
         def get_virtual_mfa_devices() -> list[dict[str, Any]]:
@@ -142,6 +144,14 @@ def get_global_data(session: Session, threads: Optional[int]) -> dict[str, Any]:
                 "iam",
                 "get_user_policy",
                 param={"UserName": user_name, "PolicyName": policy_name},
+            )
+
+        def list_user_tags(user_name: str) -> list[dict[str, Any]]:
+            return paginate(
+                "iam",
+                "list_user_tags",
+                key="Tags",
+                param={"UserName": user_name},
             )
 
         def get_user_policies(user_name: str) -> list[dict[str, Any]]:
@@ -193,6 +203,7 @@ def get_global_data(session: Session, threads: Optional[int]) -> dict[str, Any]:
             user["UserPolicies"] = get_user_policies(user_name)
             user["Groups"] = get_groups(user_name)
             user["MFADevices"] = get_mfa_devices(user_name)
+            user["Tags"] = list_user_tags(user_name)
             if user_name in user_virtual_mfa_devices:
                 user["VirtualMFADevices"] = user_virtual_mfa_devices[user_name]
             # TODO: Use key "LoginProfile"
@@ -203,7 +214,7 @@ def get_global_data(session: Session, threads: Optional[int]) -> dict[str, Any]:
 
     def iam_list_roles() -> tuple[list[str], Any]:
         log.debug(
-            "Executing iam list-roles, list-attached-role-policies, list-role-policies, get-role-policy"
+            "Executing iam list-roles, list-attached-role-policies, list-role-policies, get-role-policy, list-role-tags"
         )
 
         def get_attached_policies(role_name: str) -> list[dict[str, Any]]:
@@ -221,6 +232,13 @@ def get_global_data(session: Session, threads: Optional[int]) -> dict[str, Any]:
                 param={"RoleName": role_name, "PolicyName": policy_name},
             )
 
+        def list_role_tags(role_name: str) -> list[dict[str, Any]]:
+            return unpaginated(
+                "iam",
+                "list_role_tags",
+                param={"RoleName": role_name},
+            )["Tags"]
+
         def get_role_policies(role_name: str) -> list[dict[str, Any]]:
             policy_names = paginate(
                 "iam",
@@ -237,6 +255,7 @@ def get_global_data(session: Session, threads: Optional[int]) -> dict[str, Any]:
             role_name = role["RoleName"]
             role["AttachedPolicies"] = get_attached_policies(role_name)
             role["RolePolicies"] = get_role_policies(role_name)
+            role["Tags"] = list_role_tags(role_name)
         return ["iam", "Roles"], roles
 
     tasks.append(iam_list_roles)
@@ -315,6 +334,15 @@ def get_global_data(session: Session, threads: Optional[int]) -> dict[str, Any]:
         )
 
     tasks.append(iam_list_instance_profiles)
+
+    def iam_get_account_summary() -> tuple[list[str], Any]:
+        log.debug("Executing iam get-account-summary")
+
+        return ["iam", "SummaryMap"], unpaginated("iam", "get_account_summary")[
+            "SummaryMap"
+        ]
+
+    tasks.append(iam_get_account_summary)
 
     def s3api_list_buckets() -> tuple[list[str], Any]:
         log.debug(

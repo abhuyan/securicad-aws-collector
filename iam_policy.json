@@ -20,6 +20,7 @@
         "elasticloadbalancing:Describe*",
         "dynamodb:Describe*",
         "dynamodb:List*",
+        "iam:GetAccountSummary",
         "iam:GetGroupPolicy",
         "iam:GetPolicy",
         "iam:GetPolicyVersion",

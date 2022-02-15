@@ -542,11 +542,24 @@ def get_region_data(
 
     add_task(rds_describe_db_subnet_groups, "rds")
 
-    def lambda_list_functions() -> tuple[list[str], Any]:
-        log.debug("Executing lambda list-functions")
-        return ["lambda", "Functions"], paginate(
-            "lambda", "list_functions", key="Functions"
+    def rds_describe_db_clusters() -> tuple[list[str], Any]:
+        log.debug("Executing rds describe-db-clusters")
+        return ["rds", "DBClusters"], paginate(
+            "rds", "describe_db_clusters", key="DBClusters"
         )
+
+    add_task(rds_describe_db_clusters, "rds")
+
+    def lambda_list_functions() -> tuple[list[str], Any]:
+        log.debug("Executing lambda list-functions list-tags")
+
+        def list_tags(arn: str) -> dict[str, Any]:
+            return unpaginated("lambda", "list_tags", param={"Resource": arn})["Tags"]
+
+        functions = paginate("lambda", "list_functions", key="Functions")
+        for function in functions:
+            function["Tags"] = list_tags(function["FunctionArn"])
+        return ["lambda", "Functions"], functions
 
     add_task(lambda_list_functions, "lambda")
 
